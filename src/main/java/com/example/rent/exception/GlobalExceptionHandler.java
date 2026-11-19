@@ -12,7 +12,7 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // Ловим 404 Not Found
+    // 404 не нашлось
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<Map<String, String>> handleNotFound(ResourceNotFoundException ex) {
         return ResponseEntity
@@ -20,7 +20,7 @@ public class GlobalExceptionHandler {
                 .body(Map.of("error", ex.getMessage()));
     }
 
-    // Ловим 409 Conflict (бизнес-правила)
+    // 409 бизнес-правила
     @ExceptionHandler(BusinessRuleException.class)
     public ResponseEntity<Map<String, String>> handleBusinessRule(BusinessRuleException ex) {
         return ResponseEntity
@@ -28,7 +28,7 @@ public class GlobalExceptionHandler {
                 .body(Map.of("error", ex.getMessage()));
     }
 
-    // Ловим 422 Unprocessable Entity (ошибки валидации @Valid)
+    // 422 ошибки валидации
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> handleValidation(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
@@ -40,7 +40,7 @@ public class GlobalExceptionHandler {
                 .body(errors);
     }
     
-    // Ловим нарушение констрейнтов базы данных (например, если сработал EXCLUDE constraint)
+    // нарушение правил бд
     @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
     public ResponseEntity<Map<String, String>> handleDataIntegrity(org.springframework.dao.DataIntegrityViolationException ex) {
         return ResponseEntity

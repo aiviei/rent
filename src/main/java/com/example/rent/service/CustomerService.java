@@ -31,7 +31,6 @@ public class CustomerService {
 
     @Transactional
     public CustomerDto create(CreateCustomerRequest req) {
-        // Бизнес-правило 1: email должен быть уникальным
         if (customerRepository.existsByEmail(req.email())) {
             throw new BusinessRuleException("Customer with email " + req.email() + " already exists");
         }
@@ -50,7 +49,6 @@ public class CustomerService {
             throw new ResourceNotFoundException("Customer not found with id: " + id);
         }
         
-        // Бизнес-правило 2: нельзя удалить клиента с активной арендой
         if (rentalRepository.existsByCustomerIdAndStatus(id, RentalStatus.active)) {
             throw new BusinessRuleException("Cannot delete customer with active rentals");
         }
@@ -58,7 +56,6 @@ public class CustomerService {
         customerRepository.deleteById(id);
     }
 
-    // Вспомогательный метод для конвертации Entity -> DTO
     private CustomerDto toDto(Customer c) {
         return new CustomerDto(
                 c.getId(), 

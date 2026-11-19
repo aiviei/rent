@@ -34,29 +34,27 @@ public class RentalService {
 
     @Transactional
     public RentalDto create(CreateRentalRequest req) {
-        // Бизнес-правило 1: дата окончания должна быть позже даты начала
+        // дата окончания должна быть позже даты начала
         if (!req.endDate().isAfter(req.startDate())) {
             throw new BusinessRuleException("End date must be after start date");
         }
 
-        // Ищем клиента и оборудование
         Customer customer = customerRepository.findById(req.customerId())
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + req.customerId()));
         
         Equipment equipment = equipmentRepository.findById(req.equipmentId())
                 .orElseThrow(() -> new ResourceNotFoundException("Equipment not found with id: " + req.equipmentId()));
 
-        // Бизнес-правило 2: оборудование должно быть доступно (не в ремонте и не списано)
+        // оборудование должно быть доступно (не в ремонте и не списано)
         if (equipment.getStatus() != EquipmentStatus.available) {
             throw new BusinessRuleException("Equipment is not available for rent. Current status: " + equipment.getStatus());
         }
 
-        // Бизнес-правило 3: проверка пересечения дат (через репозиторий)
         if (rentalRepository.isEquipmentOverlapping(equipment.getId(), req.startDate(), req.endDate())) {
             throw new BusinessRuleException("Equipment is already booked for selected dates");
         }
 
-        // Бизнес-правило 4: Расчет стоимости (включая первый и последний день)
+        // расчет стоимости (включая первый и последний день)
         long days = ChronoUnit.DAYS.between(req.startDate(), req.endDate()) + 1;
         BigDecimal totalPrice = equipment.getDailyPrice().multiply(BigDecimal.valueOf(days));
 
@@ -76,12 +74,12 @@ public class RentalService {
         Rental rental = rentalRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Rental not found with id: " + id));
 
-        // Бизнес-правило 5: нельзя отменить уже завершенную аренду
+        // нельзя отменить уже завершенную аренду
         if (rental.getStatus() == RentalStatus.completed) {
             throw new BusinessRuleException("Cannot cancel a completed rental");
         }
         
-        // Бизнес-правило 6: нельзя отменить уже отмененную аренду
+        // нельзя отменить уже отмененную аренду
         if (rental.getStatus() == RentalStatus.cancelled) {
             throw new BusinessRuleException("Rental is already cancelled");
         }

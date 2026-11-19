@@ -10,13 +10,10 @@ import java.time.LocalDate;
 
 public interface RentalRepository extends JpaRepository<Rental, Long> {
     
-    // 1. Проверка для удаления клиента
     boolean existsByCustomerIdAndStatus(Long customerId, RentalStatus status);
     
-    // 2. Проверка для удаления оборудования
     boolean existsByEquipmentIdAndStatus(Long equipmentId, RentalStatus status);
     
-    // 3. Проверка пересечения дат
     @Query("""
         SELECT COUNT(r) > 0 FROM Rental r 
         WHERE r.equipment.id = :equipmentId 

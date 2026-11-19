@@ -21,6 +21,7 @@ services:
       start_period: 10s
 
   backend:
+    image: ${IMAGE_TAG:-rent:latest} 
     build:
       context: .
       dockerfile: Dockerfile
@@ -43,7 +44,6 @@ services:
 networks:
   rent-network:
     driver: bridge
-
 
 volumes:
   postgres_data:
