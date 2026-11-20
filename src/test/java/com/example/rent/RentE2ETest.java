@@ -45,7 +45,6 @@ class RentE2ETest {
         return client.send(builder.build(), HttpResponse.BodyHandlers.ofString());
     }
 
-    // Очень простой парсер ID из JSON (чтобы не тащить Jackson)
     private Long extractId(String json) {
         String idStr = json.split("\"id\":")[1].split(",")[0].replaceAll("[^0-9]", "");
         return Long.parseLong(idStr);
@@ -95,7 +94,9 @@ class RentE2ETest {
     void cancelRental() throws Exception {
         if (rentalId == null) throw new RuntimeException("rentalId is null!");
         
-        HttpResponse<String> response = sendRequest("DELETE", "/api/rentals/" + rentalId, null);
-        assertTrue(response.statusCode() == 200 || response.statusCode() == 204, "Ожидался статус 200/204, получен " + response.statusCode());
+        HttpResponse<String> response = sendRequest("PATCH", "/api/rentals/" + rentalId + "/cancel", null);
+        
+        assertTrue(response.statusCode() == 204 || response.statusCode() == 200, 
+            "Ожидался статус 200/204, получен " + response.statusCode());
     }
 }
