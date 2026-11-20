@@ -33,7 +33,7 @@ jobs:
     - uses: actions/checkout@v4
     - name: Build Docker image
       run: docker build -t rent-app:latest .
-    - name: Run Docker Compose (Deploy)
+    - name: Run Docker Compose
       run: |
         echo "POSTGRES_DB=rentdb" > .env
         echo "POSTGRES_USER=postgres" >> .env

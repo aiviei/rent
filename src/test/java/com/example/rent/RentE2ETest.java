@@ -9,7 +9,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import java.time.LocalDate;
-import java.util.Map;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
@@ -31,11 +30,7 @@ class RentE2ETest {
     @Test
     @Order(1)
     void createCustomer() {
-        Map<String, String> body = Map.of(
-                "email", "e2e_" + System.currentTimeMillis() + "@mail.ru",
-                "fullName", "E2E Тест",
-                "phone", "+79991112233"
-        );
+        String body = "{\"email\":\"e2e_" + System.currentTimeMillis() + "@mail.ru\",\"fullName\":\"E2E Тест\",\"phone\":\"+79991112233\"}";
 
         customerId = given()
                 .contentType(ContentType.JSON)
@@ -51,32 +46,22 @@ class RentE2ETest {
     @Test
     @Order(2)
     void createEquipmentAndRental() {
-        Map<String, Object> eq = Map.of(
-                "name", "E2E Камера",
-                "category", "Фото",
-                "dailyPrice", 150,
-                "status", "available"
-        );
+        String eqBody = "{\"name\":\"E2E Камера\",\"category\":\"Фото\",\"dailyPrice\":150,\"status\":\"available\"}";
 
         equipmentId = given()
                 .contentType(ContentType.JSON)
-                .body(eq)
+                .body(eqBody)
         .when()
                 .post("/api/equipment")
         .then()
                 .statusCode(201)
                 .extract().jsonPath().getLong("id");
 
-        Map<String, Object> rental = Map.of(
-                "customerId", customerId,
-                "equipmentId", equipmentId,
-                "startDate", LocalDate.now().plusDays(1).toString(),
-                "endDate", LocalDate.now().plusDays(3).toString()
-        );
+        String rentalBody = "{\"customerId\":" + customerId + ",\"equipmentId\":" + equipmentId + ",\"startDate\":\"" + LocalDate.now().plusDays(1) + "\",\"endDate\":\"" + LocalDate.now().plusDays(3) + "\"}";
 
         rentalId = given()
                 .contentType(ContentType.JSON)
-                .body(rental)
+                .body(rentalBody)
         .when()
                 .post("/api/rentals")
         .then()
