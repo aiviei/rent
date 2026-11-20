@@ -64,7 +64,7 @@ class RentIntegrationTest {
         mockMvc.perform(post("/api/customers")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isNotFound())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.email").value("test@mail.ru"))
                 .andExpect(jsonPath("$.id").exists());
     }
