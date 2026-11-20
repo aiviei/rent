@@ -79,9 +79,8 @@ class RentE2ETest {
         if (rentalId == null) throw new RuntimeException("rentalId is null!");
 
         given()
-                .pathParam("id", rentalId) // ИСПОЛЬЗУЕМ ПАРАМЕТР ВМЕСТО СКЛЕЙКИ СТРОК
         .when()
-                .get("/api/rentals/{id}")
+                .request("GET", "/api/rentals/" + rentalId) // Обходим баг RestAssured
         .then()
                 .statusCode(200)
                 .body("id", equalTo(rentalId.intValue()));
@@ -93,9 +92,8 @@ class RentE2ETest {
         if (rentalId == null) throw new RuntimeException("rentalId is null!");
 
         given()
-                .pathParam("id", rentalId)
         .when()
-                .delete("/api/rentals/{id}")
+                .request("DELETE", "/api/rentals/" + rentalId) // Обходим баг RestAssured
         .then()
                 .statusCode(anyOf(is(200), is(204)));
     }
