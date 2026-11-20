@@ -46,7 +46,8 @@ class RentE2ETest {
     @Test
     @Order(2)
     void createEquipment() {
-        String eqBody = "{\"name\":\"E2E Камера\",\"category\":\"Фото\",\"dailyPrice\":150,\"status\":\"available\"}";
+        // Убрали поле status, так как его нет в CreateEquipmentRequest
+        String eqBody = "{\"name\":\"E2E Камера\",\"category\":\"Фото\",\"dailyPrice\":150}";
 
         equipmentId = given()
                 .contentType(ContentType.JSON)
@@ -69,12 +70,6 @@ class RentE2ETest {
         .when()
                 .post("/api/rentals");
 
-        System.out.println("=== ОТВЕТ СЕРВЕРА НА СОЗДАНИЕ АРЕНДЫ ===");
-        System.out.println("Status: " + response.getStatusCode());
-        System.out.println("Body: " + response.getBody().asString());
-        System.out.println("=========================================");
-
-        // Если статус не 201 (Created), тест упадет с понятной ошибкой
         response.then().statusCode(201);
         rentalId = response.jsonPath().getLong("id");
     }
@@ -82,12 +77,11 @@ class RentE2ETest {
     @Test
     @Order(4)
     void readRental() {
-        // Если rentalId не создался, тест упадет с объяснением, а не с NPE
-        if (rentalId == null) throw new RuntimeException("rentalId is null! Аренда не была создана.");
+        if (rentalId == null) throw new RuntimeException("rentalId is null!");
 
         given()
         .when()
-                .get("/api/rentals/" + rentalId)
+                .get("/api/rentals/" + rentalId.toString())
         .then()
                 .statusCode(200)
                 .body("id", equalTo(rentalId.intValue()));
@@ -96,11 +90,11 @@ class RentE2ETest {
     @Test
     @Order(5)
     void cancelRental() {
-        if (rentalId == null) throw new RuntimeException("rentalId is null! Аренда не была создана.");
+        if (rentalId == null) throw new RuntimeException("rentalId is null!");
 
         given()
         .when()
-                .delete("/api/rentals/" + rentalId)
+                .delete("/api/rentals/" + rentalId.toString())
         .then()
                 .statusCode(anyOf(is(200), is(204)));
     }
