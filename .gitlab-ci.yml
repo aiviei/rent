@@ -10,7 +10,6 @@ variables:
   DOCKER_DRIVER: overlay2
   IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
   MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
-  # Дефолтные значения для БД (если не переопределены в Variables)
   POSTGRES_DB: rentdb
   POSTGRES_USER: postgres
   POSTGRES_PASSWORD: postgres
@@ -26,7 +25,6 @@ cache:
   paths:
     - .m2/repository
 
-# ---------- VALIDATE ----------
 config_check:
   stage: validate
   image: docker:24
@@ -34,7 +32,6 @@ config_check:
     - docker compose -f compose.yml config -q
   allow_failure: false
 
-# ---------- TEST ----------
 tests:
   stage: test
   image: maven:3.9.6-eclipse-temurin-17
@@ -48,7 +45,6 @@ tests:
       - target/surefire-reports/
   allow_failure: false
 
-# ---------- BUILD ----------
 build_image:
   stage: build
   image: docker:24
@@ -65,7 +61,6 @@ build_image:
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
-# ---------- PUBLISH ----------
 publish_image:
   stage: publish
   image: docker:24
@@ -81,7 +76,6 @@ publish_image:
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
-# ---------- DEPLOY ----------
 deploy:
   stage: deploy
   image: alpine:3.19
@@ -92,13 +86,10 @@ deploy:
     - echo "$DEPLOY_SSH_KEY" | tr -d '\r' | ssh-add -
     - mkdir -p ~/.ssh && echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
   script:
-    # Копируем compose.yml на сервер
     - scp compose.yml $DEPLOY_USER@$DEPLOY_HOST:/opt/app/compose.yml
-    # Создаем файл .env на сервере, чтобы compose.yml подхватил переменные
     - ssh $DEPLOY_USER@$DEPLOY_HOST "echo 'POSTGRES_DB=$POSTGRES_DB' > /opt/app/.env && \
         echo 'POSTGRES_USER=$POSTGRES_USER' >> /opt/app/.env && \
         echo 'POSTGRES_PASSWORD=$POSTGRES_PASSWORD' >> /opt/app/.env"
-    # Запускаем именно скачанный образ
     - ssh $DEPLOY_USER@$DEPLOY_HOST "cd /opt/app && \
         echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY && \
         IMAGE_TAG=$IMAGE_TAG docker compose pull && \
@@ -109,7 +100,6 @@ deploy:
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
-# ---------- SMOKE + E2E ----------
 smoke_and_e2e_test:
   stage: smoke
   image: maven:3.9.6-eclipse-temurin-17
@@ -118,8 +108,8 @@ smoke_and_e2e_test:
     DEPLOY_HOST: $DEPLOY_HOST
     MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
   script:
-    - sleep 15 # Ждем, пока Spring Boot стартует
-    - curl -fsS http://$DEPLOY_HOST:8080/api/customers || echo "Smoke прошел"
+    - sleep 15
+    - curl -fsS http://$DEPLOY_HOST:8080/api/customers || echo "Smoke passed"
     - mvn failsafe:integration-test failsafe:verify -Dit.test=RentE2ETest
   artifacts:
     when: always
