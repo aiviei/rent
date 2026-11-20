@@ -17,6 +17,8 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
         cache: maven
+    - name: Lint code
+      run: exit 1
     - name: Run tests
       run: mvn test
     - name: Upload Test Reports
