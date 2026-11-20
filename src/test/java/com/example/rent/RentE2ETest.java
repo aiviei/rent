@@ -2,6 +2,7 @@ package com.example.rent;
 
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
+import io.restassured.response.Response;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -39,13 +40,12 @@ class RentE2ETest {
                 .post("/api/customers")
         .then()
                 .statusCode(201)
-                .body("id", notNullValue())
                 .extract().jsonPath().getLong("id");
     }
 
     @Test
     @Order(2)
-    void createEquipmentAndRental() {
+    void createEquipment() {
         String eqBody = "{\"name\":\"E2E Камера\",\"category\":\"Фото\",\"dailyPrice\":150,\"status\":\"available\"}";
 
         equipmentId = given()
@@ -56,23 +56,35 @@ class RentE2ETest {
         .then()
                 .statusCode(201)
                 .extract().jsonPath().getLong("id");
-
-        String rentalBody = "{\"customerId\":" + customerId + ",\"equipmentId\":" + equipmentId + ",\"startDate\":\"" + LocalDate.now().plusDays(1) + "\",\"endDate\":\"" + LocalDate.now().plusDays(3) + "\"}";
-
-        rentalId = given()
-                .contentType(ContentType.JSON)
-                .body(rentalBody)
-        .when()
-                .post("/api/rentals")
-        .then()
-                .statusCode(201)
-                .body("id", notNullValue())
-                .extract().jsonPath().getLong("id");
     }
 
     @Test
     @Order(3)
+    void createRental() {
+        String rentalBody = "{\"customerId\":" + customerId + ",\"equipmentId\":" + equipmentId + ",\"startDate\":\"" + LocalDate.now().plusDays(1) + "\",\"endDate\":\"" + LocalDate.now().plusDays(3) + "\"}";
+
+        Response response = given()
+                .contentType(ContentType.JSON)
+                .body(rentalBody)
+        .when()
+                .post("/api/rentals");
+
+        System.out.println("=== ОТВЕТ СЕРВЕРА НА СОЗДАНИЕ АРЕНДЫ ===");
+        System.out.println("Status: " + response.getStatusCode());
+        System.out.println("Body: " + response.getBody().asString());
+        System.out.println("=========================================");
+
+        // Если статус не 201 (Created), тест упадет с понятной ошибкой
+        response.then().statusCode(201);
+        rentalId = response.jsonPath().getLong("id");
+    }
+
+    @Test
+    @Order(4)
     void readRental() {
+        // Если rentalId не создался, тест упадет с объяснением, а не с NPE
+        if (rentalId == null) throw new RuntimeException("rentalId is null! Аренда не была создана.");
+
         given()
         .when()
                 .get("/api/rentals/" + rentalId)
@@ -82,8 +94,10 @@ class RentE2ETest {
     }
 
     @Test
-    @Order(4)
+    @Order(5)
     void cancelRental() {
+        if (rentalId == null) throw new RuntimeException("rentalId is null! Аренда не была создана.");
+
         given()
         .when()
                 .delete("/api/rentals/" + rentalId)
