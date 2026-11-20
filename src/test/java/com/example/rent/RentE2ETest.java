@@ -46,7 +46,6 @@ class RentE2ETest {
     @Test
     @Order(2)
     void createEquipment() {
-        // Убрали поле status, так как его нет в CreateEquipmentRequest
         String eqBody = "{\"name\":\"E2E Камера\",\"category\":\"Фото\",\"dailyPrice\":150}";
 
         equipmentId = given()
@@ -80,8 +79,9 @@ class RentE2ETest {
         if (rentalId == null) throw new RuntimeException("rentalId is null!");
 
         given()
+                .pathParam("id", rentalId) // ИСПОЛЬЗУЕМ ПАРАМЕТР ВМЕСТО СКЛЕЙКИ СТРОК
         .when()
-                .get("/api/rentals/" + rentalId.toString())
+                .get("/api/rentals/{id}")
         .then()
                 .statusCode(200)
                 .body("id", equalTo(rentalId.intValue()));
@@ -93,8 +93,9 @@ class RentE2ETest {
         if (rentalId == null) throw new RuntimeException("rentalId is null!");
 
         given()
+                .pathParam("id", rentalId)
         .when()
-                .delete("/api/rentals/" + rentalId.toString())
+                .delete("/api/rentals/{id}")
         .then()
                 .statusCode(anyOf(is(200), is(204)));
     }
