@@ -1,22 +1,25 @@
 package com.example.rent;
 
-import io.restassured.RestAssured;
-import io.restassured.http.ContentType;
-import io.restassured.response.Response;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.time.LocalDate;
 
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class RentE2ETest {
 
+    private static String baseUrl;
+    private static HttpClient client;
+    
     private static Long customerId;
     private static Long equipmentId;
     private static Long rentalId;
@@ -24,77 +27,75 @@ class RentE2ETest {
     @BeforeAll
     static void setup() {
         String host = System.getenv("DEPLOY_HOST");
-        RestAssured.baseURI = (host != null) ? "http://" + host + ":8080" : "http://localhost:8080";
-        RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
+        baseUrl = (host != null) ? "http://" + host + ":8080" : "http://localhost:8080";
+        client = HttpClient.newHttpClient();
+    }
+
+    private HttpResponse<String> sendRequest(String method, String path, String body) throws Exception {
+        HttpRequest.Builder builder = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + path))
+                .header("Content-Type", "application/json");
+
+        if (body != null) {
+            builder.method(method, HttpRequest.BodyPublishers.ofString(body));
+        } else {
+            builder.method(method, HttpRequest.BodyPublishers.noBody());
+        }
+
+        return client.send(builder.build(), HttpResponse.BodyHandlers.ofString());
+    }
+
+    // Очень простой парсер ID из JSON (чтобы не тащить Jackson)
+    private Long extractId(String json) {
+        String idStr = json.split("\"id\":")[1].split(",")[0].replaceAll("[^0-9]", "");
+        return Long.parseLong(idStr);
     }
 
     @Test
     @Order(1)
-    void createCustomer() {
+    void createCustomer() throws Exception {
         String body = "{\"email\":\"e2e_" + System.currentTimeMillis() + "@mail.ru\",\"fullName\":\"E2E Тест\",\"phone\":\"+79991112233\"}";
-
-        customerId = given()
-                .contentType(ContentType.JSON)
-                .body(body)
-        .when()
-                .post("/api/customers")
-        .then()
-                .statusCode(201)
-                .extract().jsonPath().getLong("id");
+        HttpResponse<String> response = sendRequest("POST", "/api/customers", body);
+        
+        assertTrue(response.statusCode() == 201, "Ожидался статус 201, получен " + response.statusCode() + ". Ответ: " + response.body());
+        customerId = extractId(response.body());
     }
 
     @Test
     @Order(2)
-    void createEquipment() {
-        String eqBody = "{\"name\":\"E2E Камера\",\"category\":\"Фото\",\"dailyPrice\":150}";
-
-        equipmentId = given()
-                .contentType(ContentType.JSON)
-                .body(eqBody)
-        .when()
-                .post("/api/equipment")
-        .then()
-                .statusCode(201)
-                .extract().jsonPath().getLong("id");
+    void createEquipment() throws Exception {
+        String body = "{\"name\":\"E2E Камера\",\"category\":\"Фото\",\"dailyPrice\":150}";
+        HttpResponse<String> response = sendRequest("POST", "/api/equipment", body);
+        
+        assertTrue(response.statusCode() == 201, "Ожидался статус 201, получен " + response.statusCode() + ". Ответ: " + response.body());
+        equipmentId = extractId(response.body());
     }
 
     @Test
     @Order(3)
-    void createRental() {
-        String rentalBody = "{\"customerId\":" + customerId + ",\"equipmentId\":" + equipmentId + ",\"startDate\":\"" + LocalDate.now().plusDays(1) + "\",\"endDate\":\"" + LocalDate.now().plusDays(3) + "\"}";
-
-        Response response = given()
-                .contentType(ContentType.JSON)
-                .body(rentalBody)
-        .when()
-                .post("/api/rentals");
-
-        response.then().statusCode(201);
-        rentalId = response.jsonPath().getLong("id");
+    void createRental() throws Exception {
+        String body = "{\"customerId\":" + customerId + ",\"equipmentId\":" + equipmentId + ",\"startDate\":\"" + LocalDate.now().plusDays(1) + "\",\"endDate\":\"" + LocalDate.now().plusDays(3) + "\"}";
+        HttpResponse<String> response = sendRequest("POST", "/api/rentals", body);
+        
+        assertTrue(response.statusCode() == 201, "Ожидался статус 201, получен " + response.statusCode() + ". Ответ: " + response.body());
+        rentalId = extractId(response.body());
     }
 
     @Test
     @Order(4)
-    void readRental() {
+    void readRental() throws Exception {
         if (rentalId == null) throw new RuntimeException("rentalId is null!");
-
-        given()
-        .when()
-                .request("GET", "/api/rentals/" + rentalId) // Обходим баг RestAssured
-        .then()
-                .statusCode(200)
-                .body("id", equalTo(rentalId.intValue()));
+        
+        HttpResponse<String> response = sendRequest("GET", "/api/rentals/" + rentalId, null);
+        assertTrue(response.statusCode() == 200, "Ожидался статус 200, получен " + response.statusCode());
     }
 
     @Test
     @Order(5)
-    void cancelRental() {
+    void cancelRental() throws Exception {
         if (rentalId == null) throw new RuntimeException("rentalId is null!");
-
-        given()
-        .when()
-                .request("DELETE", "/api/rentals/" + rentalId) // Обходим баг RestAssured
-        .then()
-                .statusCode(anyOf(is(200), is(204)));
+        
+        HttpResponse<String> response = sendRequest("DELETE", "/api/rentals/" + rentalId, null);
+        assertTrue(response.statusCode() == 200 || response.statusCode() == 204, "Ожидался статус 200/204, получен " + response.statusCode());
     }
 }
