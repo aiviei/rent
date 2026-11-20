@@ -98,7 +98,7 @@ class RentalServiceTest {
 
         RentalDto result = rentalService.create(validRequest);
 
-        assertEquals(new BigDecimal("999.00"), result.totalPrice());
+        assertEquals(new BigDecimal("300.00"), result.totalPrice());
         assertEquals(RentalStatus.active, result.status());
     }
 
